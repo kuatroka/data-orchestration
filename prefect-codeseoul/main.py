@@ -61,6 +61,7 @@ def collect_petstore_inventory(
         base_url_emoji=base_url_emoji,
         path_emoji=path_emoji        
     )
+    
 
     emoji_stats2 = retreive_from_api_emoji2(
         base_url_emoji=base_url_emoji,

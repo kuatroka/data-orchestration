@@ -6,7 +6,6 @@ import itertools
 import re
 import random
 import datetime
-# from datetime import datetime, timedelta
 import time
 from dotenv import load_dotenv
 load_dotenv()
@@ -47,11 +46,14 @@ ticker_doubles = {'BRKB':'BRK-B', 'BRKA':'BRK-A'}
 tickers = [
     ticker_doubles.get(ticker, ticker)  # Use get() to handle potential absence in ticker_doubles
     for ticker in tickers
-    if not ticker[0].isdigit()
+    if not any(char.isdigit() for char in ticker)
     and not any(substring in ticker for substring in malformed_substrings)
-]
+    # and not in not_in_av
+    ]
 
-# tickers = random.sample(tickers, 10)
+# tickers = tickers[24298:]
+
+# tickers = random.sample(tickers, 200)
 # tickers = sorted(tickers) 
 # print(tickers)
 
@@ -198,7 +200,7 @@ def fetch_data_av(tickers):
                             start_time = time.time()
                             response = http.get(url, params=querystring, headers=headers, stream=True)
                             # time.sleep(max(0, 13 - (time.time() - start_time)))  # wait for 5 seconds to pass
-                            time.sleep(max(0, 2 - (time.time() - start_time)))  # wait for 5 seconds to pass - let's try this one 
+                            time.sleep(max(0, 1 - (time.time() - start_time)))  # wait for 5 seconds to pass - let's try this one 
                             response_content = response.content
                             start_text = response_content[:100].decode('utf-8')
 
@@ -375,20 +377,28 @@ def fetch_data_fmp(tickers):
                             # time.sleep(max(0, 2 - (time.time() - start_time)))  # wait for 2 seconds to pass - let's try this one
                             response_content = response.json()
                             start_text = response.text[:100]
+                            print_text = response.text[:50]
 
-                            # print(f'FMP: ticker: {ticker} - key: {key} - Requests left: {start_text}')
+                            print(f'FMP: ticker: {ticker} - key: {key} - print_text: {print_text}')
 
                             if any(error_message in start_text for error_message in error_messages_rate):
                                 # do something if any of the error messages are found
                                 print("Error message found!")
-                                print(f'FMP:Error message found! - ticker: {ticker} - key: {key} - Rstart_text: {start_text}')
+                                print(f'FMP:Error message found! - ticker: {ticker} - key: {key} - start_text: {start_text}')
+                                print(f'response.headers: {response.headers}')
                                 
                                 error_found = True
                                 break
                             else:
                                 if len(response_content) > 0:   
 
-                                    polars_df = pl.from_dicts(response_content.get('historical'))
+                                    try:            
+                                        polars_df = pl.from_dicts(response_content.get('historical'))
+                                    except OverflowError as e:
+                                        # Handle the overflow error
+                                        print(f"Error: {e}. Skipping item {ticker}")
+                                        continue
+                                    
                                     polars_df = polars_df.with_columns(ticker=pl.lit(ticker).alias('ticker'))
                 
                                     quarterly_df = (
